@@ -1,0 +1,89 @@
+#!/usr/bin/env sh
+# vi: ft=sh
+set -euo pipefail
+
+config_file=~/.chaperone/config
+config_file_template="[example]\nserial-number = arn:aws:iam::1234567890:mfa/user.name\naws-profile = profile-name"
+credentials_file=~/.chaperone/credentials
+
+help_text_for_missing_config_file="No configuration file found.
+
+It looks like you're using chaperone for the first time.
+The configuration file ${config_file} has been created with the following content:
+$config_file_template
+
+Please edit it and replace \"example\" with a more appropriate name and replace the value of
+serial-number with the ARN of the MFA device you want the credentials for.
+
+You can then call $(basename $0) with that profile name:
+CHAPERONE_PROFILE=example $(basename $0) ..."
+
+if [ ! -f "$config_file" ]; then
+  echo "$help_text_for_missing_config_file"
+  mkdir -p ~/.chaperone
+  echo ${config_file_template} > $config_file
+  exit 1
+fi
+
+echo "loaded config"
+
+serial_number=$(awk '/^\[example\]/{f=1} f==1&&/^serial\-number/{print $3;exit}' $config_file)
+aws_profile=$(awk '/^\[example\]/{f=1} f==1&&/^aws\-profile/{print $3;exit}' $config_file)
+
+if [ -z "${serial_number}" ]; then
+  echo "Couldn't get the serial-number from configuration."
+  exit 1
+fi
+
+if [ -z "${aws_profile}" ]; then
+  echo "Couldn't get the aws-profile from configuration."
+  exit 1
+fi
+
+if env | grep -q ^CHAPERONE_PROFILE=
+then
+	profile=$CHAPERONE_PROFILE
+else
+	echo "No profile specified."
+  exit 1
+fi
+
+echo "Using profile $profile"
+
+if [ ! -f "$credentials_file" ]; then
+  echo "No credentials found for profile $CHAPERONE_PROFILE."
+  echo "Requesting new ones."
+  read -p "MFA Token for ${serial_number}: "  mfa_token
+  aws sts get-session-token --serial-number $serial_number --token-code $mfa_token --profile $aws_profile --output text > $credentials_file
+  echo "Credentials written to $credentials_file."
+fi
+
+if [ $# -eq 0 ]; then
+  echo "No arguments supplied."
+  exit 1
+fi
+
+echo "Using $credentials_file"
+
+read -r _title access_key _expiration_timestamp secret_access_key session_token < $credentials_file
+
+if [ -z "${access_key}" ]; then
+  echo "Couldn't get the access key from credentials."
+  exit 1
+fi
+
+if [ -z "${secret_access_key}" ]; then
+  echo "Couldn't get the secret access key from credentials."
+  exit 1
+fi
+
+if [ -z "${session_token}" ]; then
+  echo "Couldn't get the session token key from credentials."
+  exit 1
+fi
+
+AWS_ACCESS_KEY_ID=$access_key \
+  AWS_SECRET_ACCESS_KEY=$secret_access_key \
+  AWS_SESSION_TOKEN=$session_token \
+  $@
+
