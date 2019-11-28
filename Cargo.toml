@@ -1,0 +1,9 @@
+[package]
+name = "chaperone"
+version = "0.1.0"
+authors = ["Christoph Gockel <cgockel@8thlight.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33.0"
+
