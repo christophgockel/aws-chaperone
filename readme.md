@@ -49,11 +49,27 @@ Since this is a fairly manual and involved process, _chaperone_ will manage it f
 Instead of using the AWS CLI directly, we can prefix it with the `chaperone` command:
 
 ```
-chaperone aws s3 ls s3://the-bucket-name
+CHAPERONE_PROFILE=example chaperone aws s3 ls s3://the-bucket-name
 ```
 
-Chaperone will check and see if a session token is available and use it to execeute the command itself.
-If no credentials could be found it will request them before executing the command and put them into `~/.chaperone/credentials` for future usage.
+Chaperone will check and see if a session token is available and use it to execute the command itself.
+If no credentials could be found it will request them before executing the command and put them into `~/.chaperone/credentials-<profile>` for future usage.
+
+
+### Behind the Scenes
+
+Using `chaperone` is not limited to the `aws` CLI command(s).
+What `chaperone` does behind the scenes is call whatever command is given to it with the following three environment variables set:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_SESSION_TOKEN`
+
+Which means we could also run Terraform with it where the remote state lives in an S3 bucket:
+
+```
+CHAPERONE_PROFILE=example chaperone terraform plan
+```
 
 
 ## Similar Projects
@@ -63,7 +79,7 @@ If no credentials could be found it will request them before executing the comma
 
 ## Roadmap
 
-- [ ] Support individual credentials per profile
+- [x] Support individual credentials per profile
 - [ ] Request new credentials when the existing ones are expired
 - [ ] Support a default profile
 
