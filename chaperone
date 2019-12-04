@@ -24,7 +24,7 @@ if [ ! -f "$config_file" ]; then
   exit 1
 fi
 
-echo "loaded config"
+echo "Loaded config"
 
 if env | grep -q ^CHAPERONE_PROFILE=
 then
@@ -67,6 +67,15 @@ fi
 echo "Using $credentials_file"
 
 read -r _title access_key _expiration_timestamp secret_access_key session_token < $credentials_file
+
+utc_now=$(date +%Y-%m-%dT%H:%M:%SZ)
+timestamp_now=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" $utc_now +"%s")
+timestamp_expiry=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" $_expiration_timestamp +"%s")
+
+if [ $timestamp_now -ge $timestamp_expiry ]; then
+  echo "Credentials expired. Remove them first."
+  exit 1
+fi
 
 if [ -z "${access_key}" ]; then
   echo "Couldn't get the access key from credentials."
