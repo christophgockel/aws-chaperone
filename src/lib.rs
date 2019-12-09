@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::create_dir;
 use std::io;
 use std::io::Error;
-use std::path::Path;
+use std::path::{Path, MAIN_SEPARATOR};
 
 const CONFIGURATION_DIRECTORY_NAME: &str = ".chaperone";
 const CONFIGURATION_FILE_NAME: &str = "config";
@@ -48,11 +48,13 @@ pub struct Filesystem {
 
 impl Filesystem {
     pub fn new(user_home_directory: String) -> Filesystem {
-        let path_to_configuration_directory: String =
-            format!("{}/{}", user_home_directory, CONFIGURATION_DIRECTORY_NAME);
+        let path_to_configuration_directory = format!(
+            "{}{}{}",
+            user_home_directory, MAIN_SEPARATOR, CONFIGURATION_DIRECTORY_NAME
+        );
         let path_to_configuration_file = format!(
-            "{}/{}",
-            path_to_configuration_directory, CONFIGURATION_FILE_NAME
+            "{}{}{}",
+            path_to_configuration_directory, MAIN_SEPARATOR, CONFIGURATION_FILE_NAME
         );
 
         Filesystem {
