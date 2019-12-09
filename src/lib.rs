@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::create_dir;
 use std::io;
 use std::io::Error;
-use std::path::{Path, MAIN_SEPARATOR};
+use std::path::PathBuf;
 
 const CONFIGURATION_DIRECTORY_NAME: &str = ".chaperone";
 const CONFIGURATION_FILE_NAME: &str = "config";
@@ -25,7 +25,7 @@ pub fn initialize(
     }
 
     if !filesystem.config_file_exists() {
-        stdout.write("Creating configuration file".as_bytes())?;
+        stdout.write("Creating configuration file.\n".as_bytes())?;
         filesystem.create_config_file(CONFIGURATION_FILE_CONTENT)?;
     } else {
         stdout.write("Configuration file already exists.\nNothing to do here.\n".as_bytes())?;
@@ -42,20 +42,17 @@ pub trait FilesystemAccess {
 }
 
 pub struct Filesystem {
-    path_to_configuration_directory: String,
-    path_to_configuration_file: String,
+    path_to_configuration_directory: PathBuf,
+    path_to_configuration_file: PathBuf,
 }
 
 impl Filesystem {
-    pub fn new(user_home_directory: String) -> Filesystem {
-        let path_to_configuration_directory = format!(
-            "{}{}{}",
-            user_home_directory, MAIN_SEPARATOR, CONFIGURATION_DIRECTORY_NAME
-        );
-        let path_to_configuration_file = format!(
-            "{}{}{}",
-            path_to_configuration_directory, MAIN_SEPARATOR, CONFIGURATION_FILE_NAME
-        );
+    pub fn new(user_home_directory: PathBuf) -> Filesystem {
+        let mut path_to_configuration_directory = PathBuf::from(user_home_directory);
+        path_to_configuration_directory.push(CONFIGURATION_DIRECTORY_NAME);
+
+        let mut path_to_configuration_file = PathBuf::from(&path_to_configuration_directory);
+        path_to_configuration_file.push(CONFIGURATION_FILE_NAME);
 
         Filesystem {
             path_to_configuration_directory,
@@ -66,19 +63,19 @@ impl Filesystem {
 
 impl FilesystemAccess for Filesystem {
     fn config_directory_exists(&self) -> bool {
-        Path::new(&self.path_to_configuration_directory).exists()
+        self.path_to_configuration_directory.exists()
     }
 
     fn config_file_exists(&self) -> bool {
-        Path::new(&self.path_to_configuration_file).exists()
+        self.path_to_configuration_file.exists()
     }
 
     fn create_config_directory(&mut self) -> Result<(), Error> {
-        create_dir(&self.path_to_configuration_directory)
+        create_dir(self.path_to_configuration_directory.as_path())
     }
 
     fn create_config_file(&mut self, content: &str) -> Result<(), Error> {
-        fs::write(&self.path_to_configuration_file, content)
+        fs::write(self.path_to_configuration_file.as_path(), content)
     }
 }
 
@@ -245,7 +242,7 @@ mod tests {
                 initialize(&mut stdout, &mut filesystem).unwrap();
 
                 assert_eq!(
-                    "Creating configuration file",
+                    "Creating configuration file.\n",
                     stdout.written_content.unwrap()
                 )
             }
