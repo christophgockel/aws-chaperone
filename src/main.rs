@@ -1,13 +1,18 @@
 use chaperone::initialize;
 use chaperone::ExecutionMode;
 use chaperone::ExecutionMode::{Initialize, NoOp};
+use chaperone::Filesystem;
+use std::result::Result;
 
 use clap::{crate_authors, crate_name, crate_version, App, Arg};
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
+    let home = std::env::var("HOME").expect("Unable to locate home directory.");
+    let mut x = Filesystem::new(home);
+
     match execution_mode() {
-        Initialize => initialize(&mut std::io::stdout()),
-        NoOp => return,
+        Initialize => initialize(&mut std::io::stdout(), &mut x),
+        NoOp => Ok(()),
     }
 }
 
