@@ -7,8 +7,8 @@ use std::process::Command;
 pub const CONFIGURATION_DIRECTORY_NAME: &str = ".chaperone";
 pub const CONFIGURATION_FILE_NAME: &str = "config";
 pub const CONFIGURATION_FILE_CONTENT: &str = "[example]
-serial-number = arn:aws:iam::1234567890:mfa/user.name
-aws-profile = profile-name
+mfa-device-arn = arn:aws:iam::1234567890:mfa/user.name
+aws-cli-profile = profile-name
 ";
 pub const ENVIRONMENT_VARIABLE_FOR_ACCESS_KEY: &str = "AWS_ACCESS_KEY_ID";
 pub const ENVIRONMENT_VARIABLE_FOR_SECRET_KEY: &str = "AWS_SECRET_ACCESS_KEY";
@@ -32,10 +32,10 @@ impl EnvironmentVariables {
 
 pub enum ExecutionMode {
     Initialize,
-    Run(Configuration),
+    Run(Settings),
 }
 
-pub struct Configuration {
+pub struct Settings {
     pub command_name: String,
     pub command: Box<Command>,
 }
@@ -45,6 +45,7 @@ pub trait FilesystemAccess {
     fn config_file_exists(&self) -> bool;
     fn create_config_directory(&mut self) -> Result<(), Error>;
     fn create_config_file(&mut self, content: &str) -> Result<(), Error>;
+    fn read_config_file(&self) -> Result<String, Error>;
 }
 
 pub struct Filesystem {
@@ -82,5 +83,9 @@ impl FilesystemAccess for Filesystem {
 
     fn create_config_file(&mut self, content: &str) -> Result<(), Error> {
         fs::write(self.path_to_configuration_file.as_path(), content)
+    }
+
+    fn read_config_file(&self) -> Result<String, Error> {
+        return fs::read_to_string(&self.path_to_configuration_file);
     }
 }

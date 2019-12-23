@@ -125,6 +125,10 @@ mod tests {
 
             Ok(())
         }
+
+        fn read_config_file(&self) -> Result<String, Error> {
+            return Ok(String::new());
+        }
     }
 
     mod configuration_directory {

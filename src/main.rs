@@ -1,14 +1,15 @@
-use chaperone::Configuration;
 use chaperone::ExecutionMode;
 use chaperone::ExecutionMode::{Initialize, Run};
 use chaperone::Filesystem;
 use chaperone::FilesystemAccess;
+use chaperone::Settings;
 use std::io::{Error, Write};
 use std::path::PathBuf;
 use std::process;
 use std::process::Command;
 use std::result::Result;
 
+mod config;
 mod init;
 mod run;
 
@@ -16,6 +17,7 @@ use clap::{crate_authors, crate_name, crate_version, App, AppSettings, Arg};
 
 fn main() -> Result<(), std::io::Error> {
     let home = std::env::var("HOME").expect("Unable to locate home directory.");
+    let _profile = std::env::var("CHAPERONE_PROFILE").expect("No CHAPERONE_PROFILE defined.");
     let mut filesystem = Filesystem::new(PathBuf::from(home));
 
     match execution_mode() {
@@ -27,9 +29,12 @@ fn main() -> Result<(), std::io::Error> {
 fn run_thing(
     stdout: &mut Write,
     filesystem: &mut dyn FilesystemAccess,
-    config: &mut Configuration,
+    settings: &mut Settings,
 ) -> Result<(), Error> {
-    if let Err(e) = run::command(stdout, filesystem, config) {
+    let config_file_content = filesystem.read_config_file().unwrap();
+    let _c = config::Config::for_profile("dev".to_string(), config_file_content);
+
+    if let Err(e) = run::command(stdout, filesystem, settings) {
         eprintln!("{}", e);
 
         process::exit(1);
@@ -69,12 +74,12 @@ fn execution_mode() -> ExecutionMode {
             let mut command = Box::new(Command::new(first));
             command.args(rest);
 
-            let c = Configuration {
+            let settings = Settings {
                 command_name: first.to_string(),
                 command: command,
             };
 
-            return Run(c);
+            return Run(settings);
         }
     }
 
