@@ -6,7 +6,7 @@ use std::io::{Error, ErrorKind, Write};
 pub fn command(
     _stdout: &mut Write,
     _filesystem: &mut dyn FilesystemAccess,
-    settings: &mut Settings,
+    settings: &mut Box<Settings>,
 ) -> Result<(), Error> {
     let command = settings.command.as_mut();
 

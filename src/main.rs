@@ -1,40 +1,48 @@
+use chaperone::Arguments;
 use chaperone::ExecutionMode;
 use chaperone::ExecutionMode::{Initialize, Run};
 use chaperone::Filesystem;
 use chaperone::FilesystemAccess;
-use chaperone::Settings;
 use std::io::{Error, Write};
 use std::path::PathBuf;
 use std::process;
-use std::process::Command;
 use std::result::Result;
 
 mod config;
 mod init;
 mod run;
+mod settings;
 
 use clap::{crate_authors, crate_name, crate_version, App, AppSettings, Arg};
 
 fn main() -> Result<(), std::io::Error> {
     let home = std::env::var("HOME").expect("Unable to locate home directory.");
-    let _profile = std::env::var("CHAPERONE_PROFILE").expect("No CHAPERONE_PROFILE defined.");
     let mut filesystem = Filesystem::new(PathBuf::from(home));
 
     match execution_mode() {
         Initialize => init::initialize(&mut std::io::stdout(), &mut filesystem),
-        Run(mut config) => run_thing(&mut std::io::stdout(), &mut filesystem, &mut config),
+        Run(mut arguments) => run_thing(&mut std::io::stdout(), &mut filesystem, &mut arguments),
     }
 }
 
 fn run_thing(
     stdout: &mut Write,
-    filesystem: &mut dyn FilesystemAccess,
-    settings: &mut Settings,
+    filesystem: &mut FilesystemAccess,
+    arguments: &mut Arguments,
 ) -> Result<(), Error> {
     let config_file_content = filesystem.read_config_file().unwrap();
-    let _c = config::Config::for_profile("dev".to_string(), config_file_content);
+    let c = match config::Config::for_profile(arguments.profile.clone(), config_file_content) {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("{}", e);
 
-    if let Err(e) = run::command(stdout, filesystem, settings) {
+            process::exit(1);
+        }
+    };
+
+    let mut settings = settings::build_settings(arguments, c);
+
+    if let Err(e) = run::command(stdout, filesystem, &mut settings) {
         eprintln!("{}", e);
 
         process::exit(1);
@@ -68,20 +76,14 @@ fn execution_mode() -> ExecutionMode {
     if matches.is_present("init") {
         return ExecutionMode::Initialize;
     } else {
-        let command_parts: Vec<&str> = matches.values_of("command").unwrap().collect();
+        let profile = std::env::var("CHAPERONE_PROFILE").expect("No CHAPERONE_PROFILE defined.");
+        let command_arguments: Vec<&str> = matches.values_of("command").unwrap().collect();
 
-        if let Some((first, rest)) = command_parts.split_first() {
-            let mut command = Box::new(Command::new(first));
-            command.args(rest);
+        let arguments = Arguments {
+            profile: profile,
+            command_parts: command_arguments.iter().map(|p| p.to_string()).collect(),
+        };
 
-            let settings = Settings {
-                command_name: first.to_string(),
-                command: command,
-            };
-
-            return Run(settings);
-        }
+        return Run(arguments);
     }
-
-    return ExecutionMode::Initialize;
 }

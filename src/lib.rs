@@ -32,7 +32,12 @@ impl EnvironmentVariables {
 
 pub enum ExecutionMode {
     Initialize,
-    Run(Settings),
+    Run(Arguments),
+}
+
+pub struct Arguments {
+    pub profile: String,
+    pub command_parts: Vec<String>,
 }
 
 pub struct Settings {

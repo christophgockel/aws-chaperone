@@ -12,9 +12,9 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
-            ConfigError::NoProfileFound => f.write_str("Wat"),
-            ConfigError::NoMfaDeviceArnDefined => f.write_str("..."),
-            ConfigError::NoAwsProfileDefined => f.write_str("..."),
+            ConfigError::NoProfileFound => f.write_str("No profile found."),
+            ConfigError::NoMfaDeviceArnDefined => f.write_str("No MFA device ARN defined."),
+            ConfigError::NoAwsProfileDefined => f.write_str("No AWS profile defined."),
         }
     }
 }
@@ -45,7 +45,7 @@ impl Config {
         };
 
         let mfa_device_arn = match profile_section.get("mfa-device-arn") {
-            Some(IniValue::Value(x)) => x.to_string(),
+            Some(IniValue::Value(x)) => x,
             _ => return Err(ConfigError::NoMfaDeviceArnDefined),
         };
 
