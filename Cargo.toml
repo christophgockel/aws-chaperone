@@ -1,0 +1,17 @@
+[package]
+name = "chaperone"
+version = "0.1.0"
+authors = ["Christoph Gockel <cgockel@8thlight.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33.0"
+serde = "1.0.104"
+serde_derive = "1.0.104"
+serde_ini = "0.2.0"
+
+
+
+[dev-dependencies]
+filesystem = "0.4.4"
+
