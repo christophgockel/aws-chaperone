@@ -3,18 +3,20 @@ use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
-pub enum ConfigError {
-    NoProfileFound,
+pub enum Error {
+    NoProfileFound(String),
     NoMfaDeviceArnDefined,
     NoAwsProfileDefined,
 }
 
-impl fmt::Display for ConfigError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match *self {
-            ConfigError::NoProfileFound => f.write_str("No profile found."),
-            ConfigError::NoMfaDeviceArnDefined => f.write_str("No MFA device ARN defined."),
-            ConfigError::NoAwsProfileDefined => f.write_str("No AWS profile defined."),
+            Error::NoProfileFound(ref name) => {
+                f.write_str(&format!("Profile \"{}\" not found", name))
+            }
+            Error::NoMfaDeviceArnDefined => f.write_str("No MFA device ARN defined."),
+            Error::NoAwsProfileDefined => f.write_str("No AWS profile defined."),
         }
     }
 }
@@ -35,23 +37,23 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn for_profile(profile: String, content: String) -> Result<Config, ConfigError> {
+    pub fn for_profile(profile: String, content: String) -> Result<Config, Error> {
         let content = content.trim();
         let entries = serde_ini::from_str::<IniContent>(&content).unwrap();
 
         let profile_section = match entries.get(&profile) {
             Some(IniValue::Map(section)) => section,
-            _ => return Err(ConfigError::NoProfileFound),
+            _ => return Err(Error::NoProfileFound(profile)),
         };
 
         let mfa_device_arn = match profile_section.get("mfa-device-arn") {
             Some(IniValue::Value(x)) => x,
-            _ => return Err(ConfigError::NoMfaDeviceArnDefined),
+            _ => return Err(Error::NoMfaDeviceArnDefined),
         };
 
         let aws_cli_profile_name = match profile_section.get("aws-cli-profile") {
             Some(IniValue::Value(x)) => x,
-            _ => return Err(ConfigError::NoAwsProfileDefined),
+            _ => return Err(Error::NoAwsProfileDefined),
         };
 
         return Ok(Config {
@@ -88,7 +90,10 @@ mod tests {
 
         let result = Config::for_profile(profile, content);
 
-        assert_eq!(result, Err(ConfigError::NoProfileFound));
+        assert_eq!(
+            result,
+            Err(Error::NoProfileFound("the-profile".to_string()))
+        );
     }
 
     #[test]
@@ -102,8 +107,8 @@ mod tests {
 
         let result = Config::for_profile(profile, content);
 
-        assert_eq!(result, Err(ConfigError::NoMfaDeviceArnDefined));
-        assert_eq!(result.err(), Some(ConfigError::NoMfaDeviceArnDefined));
+        assert_eq!(result, Err(Error::NoMfaDeviceArnDefined));
+        assert_eq!(result.err(), Some(Error::NoMfaDeviceArnDefined));
     }
 
     #[test]
@@ -117,6 +122,6 @@ mod tests {
 
         let result = Config::for_profile(profile, content);
 
-        assert_eq!(result, Err(ConfigError::NoAwsProfileDefined));
+        assert_eq!(result, Err(Error::NoAwsProfileDefined));
     }
 }

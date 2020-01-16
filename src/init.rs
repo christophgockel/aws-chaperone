@@ -1,8 +1,12 @@
-use chaperone::FilesystemAccess;
-use chaperone::CONFIGURATION_FILE_CONTENT;
-use std::io::{Error, Write};
+use crate::ChaperoneError;
+use crate::FilesystemAccess;
+use crate::CONFIGURATION_FILE_CONTENT;
+use std::io::Write;
 
-pub fn initialize(stdout: &mut Write, filesystem: &mut dyn FilesystemAccess) -> Result<(), Error> {
+pub fn initialize(
+    stdout: &mut Write,
+    filesystem: &mut dyn FilesystemAccess,
+) -> Result<(), ChaperoneError> {
     if !filesystem.config_directory_exists() {
         filesystem.create_config_directory()?;
     }
@@ -20,6 +24,7 @@ pub fn initialize(stdout: &mut Write, filesystem: &mut dyn FilesystemAccess) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Error;
 
     struct StdoutDouble {
         pub written_content: Option<String>,

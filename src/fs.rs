@@ -1,49 +1,10 @@
+use crate::CONFIGURATION_DIRECTORY_NAME;
+use crate::CONFIGURATION_FILE_NAME;
+use std::convert::From;
 use std::fs;
 use std::fs::create_dir;
 use std::io::Error;
 use std::path::PathBuf;
-use std::process::Command;
-
-pub const CONFIGURATION_DIRECTORY_NAME: &str = ".chaperone";
-pub const CONFIGURATION_FILE_NAME: &str = "config";
-pub const CONFIGURATION_FILE_CONTENT: &str = "[example]
-mfa-device-arn = arn:aws:iam::1234567890:mfa/user.name
-aws-cli-profile = profile-name
-";
-pub const ENVIRONMENT_VARIABLE_FOR_ACCESS_KEY: &str = "AWS_ACCESS_KEY_ID";
-pub const ENVIRONMENT_VARIABLE_FOR_SECRET_KEY: &str = "AWS_SECRET_ACCESS_KEY";
-pub const ENVIRONMENT_VARIABLE_FOR_SESSION_TOKEN: &str = "AWS_SESSION_TOKEN";
-
-pub enum EnvironmentVariables {
-    AccessKey,
-    SecretKey,
-    SessionToken,
-}
-
-impl EnvironmentVariables {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            EnvironmentVariables::AccessKey => "AWS_ACCESS_KEY_ID",
-            EnvironmentVariables::SecretKey => "AWS_SECRET_ACCESS_KEY",
-            EnvironmentVariables::SessionToken => "AWS_SESSION_TOKEN",
-        }
-    }
-}
-
-pub enum ExecutionMode {
-    Initialize,
-    Run(Arguments),
-}
-
-pub struct Arguments {
-    pub profile: String,
-    pub command_parts: Vec<String>,
-}
-
-pub struct Settings {
-    pub command_name: String,
-    pub command: Box<Command>,
-}
 
 pub trait FilesystemAccess {
     fn config_directory_exists(&self) -> bool;
@@ -91,6 +52,6 @@ impl FilesystemAccess for Filesystem {
     }
 
     fn read_config_file(&self) -> Result<String, Error> {
-        return fs::read_to_string(&self.path_to_configuration_file);
+        fs::read_to_string(&self.path_to_configuration_file)
     }
 }

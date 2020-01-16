@@ -1,6 +1,6 @@
 use crate::config::Config;
-use chaperone::Arguments;
-use chaperone::Settings;
+use crate::Arguments;
+use crate::Settings;
 use std::process::Command;
 
 pub fn build_settings(arguments: &mut Arguments, _c: Config) -> Box<Settings> {

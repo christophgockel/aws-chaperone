@@ -1,13 +1,14 @@
-use chaperone::EnvironmentVariables;
-use chaperone::FilesystemAccess;
-use chaperone::Settings;
-use std::io::{Error, ErrorKind, Write};
+use crate::ChaperoneError;
+use crate::EnvironmentVariables;
+use crate::FilesystemAccess;
+use crate::Settings;
+use std::io::Write;
 
 pub fn command(
     _stdout: &mut Write,
     _filesystem: &mut dyn FilesystemAccess,
     settings: &mut Box<Settings>,
-) -> Result<(), Error> {
+) -> Result<(), ChaperoneError> {
     let command = settings.command.as_mut();
 
     command.env(EnvironmentVariables::AccessKey.as_str(), "a");
@@ -15,11 +16,12 @@ pub fn command(
     command.env(EnvironmentVariables::SessionToken.as_str(), "c");
 
     if let Ok(child) = command.spawn() {
-        child.wait_with_output()?;
+        child
+            .wait_with_output()
+            .expect("Failure to execute command.");
     } else {
-        return Err(Error::new(
-            ErrorKind::NotFound,
-            format!("Command not found: {}", settings.command_name),
+        return Err(ChaperoneError::CommandNotFound(
+            settings.command_name.to_string(),
         ));
     }
 
